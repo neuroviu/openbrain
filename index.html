@@ -21,7 +21,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 </style>
 </head>
 <body>
-<header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
+<header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#rhythms">Brain rhythms</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
 <main>
 <section class="hero"><p class="eyebrow">Free • Open source • No hardware needed</p><h1>See More of You.<br>Explore the Brain.</h1><p class="lede">An interactive learning space for brain and body signals. Explore synthetic waveforms, understand the basics, and download sample data—all in your browser.</p></section>
 <section class="panel" id="explorer" aria-labelledby="explorer-title"><p class="eyebrow">Interactive lab</p><h2 id="explorer-title">Biosignal Explorer</h2>
@@ -33,6 +33,20 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <canvas id="plot" role="img" aria-label="Synthetic EEG waveform chart"></canvas>
 <p id="explanation" aria-live="polite"></p>
 <small>All signals are synthetic mathematical examples, not recordings from people. Not for diagnosis or clinical decisions.</small>
+</section>
+<section class="panel" id="rhythms" aria-labelledby="rhythms-title">
+<p class="eyebrow">New learning lab</p><h2 id="rhythms-title">Brain Rhythm Explorer</h2>
+<p>Compare five commonly described EEG frequency bands. These are illustrative oscillations—not actual brain recordings. Frequency bands overlap across studies, and a frequency alone cannot tell us a person's mental state.</p>
+<div class="controls">
+<label class="control">Rhythm band<select id="band">
+<option value="delta">Delta · 0.5–4 Hz</option><option value="theta">Theta · 4–8 Hz</option><option value="alpha" selected>Alpha · 8–13 Hz</option><option value="beta">Beta · 13–30 Hz</option><option value="gamma">Gamma · 30–80+ Hz</option>
+</select></label>
+<label class="control">Example frequency (Hz)<input id="frequency" type="range" min="8" max="13" step=".5" value="10"><output id="frequencyValue">10 Hz</output></label>
+<button id="rhythmDownload" type="button">Download rhythm CSV</button>
+</div>
+<canvas id="rhythmPlot" role="img" aria-label="Simulated alpha rhythm at 10 hertz"></canvas>
+<p id="rhythmExplanation" aria-live="polite"></p>
+<small>Waveform: pure synthetic sine wave; 2-second display window; amplitude in arbitrary units. No EEG hardware or personal data.</small>
 </section>
 <section id="learn" aria-labelledby="learn-title"><h2 id="learn-title">What are we exploring?</h2><div class="grid">
 <article class="tile"><h3>🧠 EEG</h3><p>Electroencephalography measures electrical activity recorded from the scalp. Explore an illustrative rhythmic waveform.</p></article>
@@ -63,4 +77,33 @@ document.getElementById("download").addEventListener("click",()=>{
  const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="openbrain_"+kind+"_synthetic.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 mode.addEventListener("change",draw);intensity.addEventListener("input",draw);window.addEventListener("resize",draw);draw();
+
+// Brain Rhythm Explorer: separate educational sinusoid, independent of the biosignal demo.
+const bandSelect=document.getElementById("band"),frequency=document.getElementById("frequency"),frequencyValue=document.getElementById("frequencyValue"),rhythmPlot=document.getElementById("rhythmPlot"),rhythmExplanation=document.getElementById("rhythmExplanation");
+const bands={
+ delta:{min:.5,max:4,default:2,info:"Delta (roughly 0.5–4 Hz) is commonly prominent during deep non-REM sleep. This visualization shows frequency only, not sleep staging."},
+ theta:{min:4,max:8,default:6,info:"Theta (roughly 4–8 Hz) can appear in drowsiness and during various cognitive tasks. Context and recording conditions matter."},
+ alpha:{min:8,max:13,default:10,info:"Alpha (roughly 8–13 Hz) is often prominent in relaxed wakefulness, especially with eyes closed, but varies between people."},
+ beta:{min:13,max:30,default:20,info:"Beta (roughly 13–30 Hz) is observed in multiple waking and sensorimotor contexts. It is not a direct measure of attention."},
+ gamma:{min:30,max:80,default:40,info:"Gamma (often above 30 Hz) is studied in neural processing, but scalp recordings can be contaminated by muscle activity."}
+};
+function drawRhythm(){
+ const f=Number(frequency.value),band=bandSelect.value,meta=bands[band];frequencyValue.value=f+" Hz";rhythmExplanation.textContent=meta.info;
+ rhythmPlot.setAttribute("aria-label","Synthetic "+band+" sinusoidal rhythm at "+f+" hertz");
+ const dpr=window.devicePixelRatio||1,w=Math.max(280,rhythmPlot.clientWidth),height=270;
+ rhythmPlot.width=Math.round(w*dpr);rhythmPlot.height=Math.round(height*dpr);
+ const ctx=rhythmPlot.getContext("2d");ctx.scale(dpr,dpr);
+ ctx.strokeStyle="#42305d";ctx.lineWidth=1;for(let i=1;i<5;i++){let y=height*i/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.strokeStyle="#82e7dc";ctx.lineWidth=2;ctx.beginPath();
+ for(let i=0;i<w;i++){const t=2*i/(w-1),y=height/2-Math.sin(2*Math.PI*f*t)*height*.32;if(i===0)ctx.moveTo(i,y);else ctx.lineTo(i,y)}ctx.stroke();
+}
+bandSelect.addEventListener("change",()=>{const b=bands[bandSelect.value];frequency.min=b.min;frequency.max=b.max;frequency.step=.5;frequency.value=b.default;drawRhythm()});
+frequency.addEventListener("input",drawRhythm);
+window.addEventListener("resize",drawRhythm);
+document.getElementById("rhythmDownload").addEventListener("click",()=>{
+ const f=Number(frequency.value),rows=["time_s,synthetic_amplitude_arbitrary_units"];
+ for(let i=0;i<=1000;i++){const t=i/500;rows.push(t.toFixed(4)+","+Math.sin(2*Math.PI*f*t).toFixed(6))}
+ const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="openbrain_"+bandSelect.value+"_"+f+"hz_synthetic.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+drawRhythm();
 </script></body></html>
