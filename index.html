@@ -13,7 +13,7 @@ a{color:#e0caff}nav a{margin-left:18px}.brand{font-size:1.2rem;font-weight:800;l
 .panel{background:rgba(32,20,51,.94);border:1px solid #5a417d;border-radius:20px;padding:24px;margin:24px 0;box-shadow:0 14px 45px #08051255}
 .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:end}.control{display:grid;gap:5px;min-width:160px;flex:1}
 select,input,button{font:inherit;border-radius:9px;padding:10px;background:#130d22;color:white;border:1px solid #8464b1}
-button{cursor:pointer;background:#8653d7;border:0;font-weight:700}button:hover{background:#9d6aeb}
+button{cursor:pointer;background:#8653d7;border:0;font-weight:700}button:hover{background:#9d6aeb}button:disabled{opacity:.65;cursor:not-allowed}textarea{font:inherit;background:#130d22;color:white;border:1px solid #8464b1;border-radius:9px;padding:10px}html{scroll-behavior:smooth}section[id]{scroll-margin-top:20px}
 canvas{display:block;width:100%;height:270px;background:#120d20;border:1px solid #493266;border-radius:12px;margin:20px 0 10px}
 small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.tile{padding:18px;border-radius:14px;background:#2b1b43;border:1px solid #634587}
 footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
@@ -23,7 +23,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <body>
 <header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#rhythms">Brain rhythms</a><a href="#lessons">Lessons</a><a href="#feedback">Feedback</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
 <main>
-<section class="hero"><p class="eyebrow">Free • Open source • No hardware needed</p><h1>See More of You.<br>Explore the Brain.</h1><p class="lede">An interactive learning space for brain and body signals. Explore synthetic waveforms, understand the basics, and download sample data—all in your browser.</p></section>
+<section class="hero"><p class="eyebrow">Free • Open source • No hardware needed</p><h1>See More of You.<br>Explore the Brain.</h1><p class="lede">An interactive learning space for brain and body signals. Explore synthetic waveforms, understand the basics, and download sample data—all in your browser.</p><p><a href="#feedback">Preview our beta feedback form ↓</a></p></section>
 <section class="panel" id="explorer" aria-labelledby="explorer-title"><p class="eyebrow">Interactive lab</p><h2 id="explorer-title">Biosignal Explorer</h2>
 <div class="controls">
 <label class="control">Signal type<select id="mode"><option value="eeg">EEG — Brain rhythms</option><option value="viugaze">ViuGaze™ — Eye movements</option><option value="emg">EMG — Muscle activity</option></select></label>
@@ -61,9 +61,9 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <div class="tile" style="margin-top:16px"><h3>🎓 Foundations learning path</h3><p>Complete all four lesson quizzes correctly to unlock an informal completion certificate.</p><label class="control">Name for certificate (optional)<input id="certificateName" type="text" maxlength="80" placeholder="Your name"></label><p><button id="certificateButton" type="button" disabled>Print completion certificate</button></p><p id="certificateStatus" aria-live="polite">Finish all four quizzes to unlock.</p></div><div class="tile" style="margin-top:16px"><h3>📚 Free classroom resources</h3><p><a href="https://github.com/neuroviu/openbrain/blob/main/resources/student-activity.md">Student activity sheet</a> · <a href="https://github.com/neuroviu/openbrain/blob/main/resources/educator-guide.md">Educator guide and answer key</a></p><p>These resources are free to read, download, and adapt with attribution.</p></div><small>Educational content only. These explanations simplify complex physiology and are not clinical guidance.</small>
 </section>
 <section class="panel" id="feedback" aria-labelledby="feedback-title">
-<p class="eyebrow">Help shape our public beta</p><h2 id="feedback-title">Share anonymous feedback</h2>
+<p class="eyebrow">Help shape our public beta</p><h2 id="feedback-title">Beta feedback survey (preview)</h2>
 <p>We're preparing a short, optional survey. No name, email address, or account is requested. Please do not include health details or other identifying information.</p>
-<form id="feedbackForm">
+<form id="feedbackForm" action="#feedback">
 <div class="controls">
 <label class="control">Your role (optional)<select name="role"><option value="">Prefer not to say</option><option value="student">Student</option><option value="educator">Educator</option><option value="researcher">Researcher</option><option value="other">Other</option></select></label>
 <label class="control">Ease of use<select name="ease" required><option value="">Choose a rating</option><option value="1">1 — Difficult</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 — Easy</option></select></label>
@@ -72,7 +72,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <p><label class="control">Did you encounter an accessibility difficulty?<select name="accessibility"><option value="">Prefer not to say</option><option value="no">No</option><option value="yes">Yes</option><option value="unsure">Not sure</option></select></label></p>
 <p><label class="control">What should we improve? (optional)<textarea name="suggestion" maxlength="500" rows="3" style="width:100%;resize:vertical" placeholder="Please avoid names, contact details, or health information."></textarea></label></p>
 <button id="feedbackSubmit" type="submit" disabled>Submit feedback (coming soon)</button>
-<p id="feedbackStatus" aria-live="polite">The survey is being connected to a secure submission service. It cannot receive responses yet.</p>
+<p id="feedbackStatus" aria-live="polite">Preview only: your responses are not collected or submitted yet. We will enable submission after configuring a privacy-reviewed form endpoint.</p>
 </form>
 <small>Anonymous means we do not ask for identifying information. The eventual submission provider may still process technical metadata such as IP addresses; we'll publish its privacy details before activating submissions.</small>
 </section>
@@ -160,4 +160,5 @@ certificateButton.addEventListener("click",()=>{
  doc.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>NeuroLearn Certificate</title><style>body{font-family:system-ui;text-align:center;padding:12vh 8vw;color:#302048;border:12px solid #9b73cf;margin:20px}h1{font-size:3rem}h2{font-size:2rem}p{font-size:1.2rem}</style></head><body><h1>NeuroViu · NeuroLearn</h1><p>Certificate of Participation</p><h2>'+safe+'</h2><p>Completed four introductory neuroscience knowledge checks in OpenBrain Foundations.</p><p>'+new Date().toLocaleDateString()+'</p><p>Informal educational recognition only — not accredited training or proof of identity.</p></body></html>');
  doc.document.close();doc.focus();doc.print();
 });
+document.getElementById("feedbackForm").addEventListener("submit",event=>{event.preventDefault()});
 </script></body></html>
