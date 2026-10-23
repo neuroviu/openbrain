@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="NeuroViu OpenBrain — free, open-source neuroscience and simulated biosignal explorer.">
+<title>OpenBrain | NeuroViu</title>
+<style>
+:root{color-scheme:dark;--bg:#100b1e;--panel:#201433;--purple:#b58cff;--ink:#f8f4ff;--muted:#c8b9df}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#3b205e,var(--bg) 62%);color:var(--ink);font:16px/1.6 system-ui,-apple-system,sans-serif}
+header,main,footer{max-width:1050px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+a{color:#e0caff}nav a{margin-left:18px}.brand{font-size:1.2rem;font-weight:800;letter-spacing:.02em}.brand span{color:var(--purple)}
+.hero{padding:52px 0 32px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;color:var(--purple);font-size:.78rem;font-weight:700}h1{font-size:clamp(2.5rem,7vw,5rem);line-height:1.08;margin:12px 0}h2{margin-top:0}.lede{font-size:1.2rem;max-width:700px;color:var(--muted)}
+.panel{background:rgba(32,20,51,.94);border:1px solid #5a417d;border-radius:20px;padding:24px;margin:24px 0;box-shadow:0 14px 45px #08051255}
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:end}.control{display:grid;gap:5px;min-width:160px;flex:1}
+select,input,button{font:inherit;border-radius:9px;padding:10px;background:#130d22;color:white;border:1px solid #8464b1}
+button{cursor:pointer;background:#8653d7;border:0;font-weight:700}button:hover{background:#9d6aeb}
+canvas{display:block;width:100%;height:270px;background:#120d20;border:1px solid #493266;border-radius:12px;margin:20px 0 10px}
+small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.tile{padding:18px;border-radius:14px;background:#2b1b43;border:1px solid #634587}
+footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
+:focus-visible{outline:3px solid #e9cfff;outline-offset:3px}
+</style>
+</head>
+<body>
+<header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
+<main>
+<section class="hero"><p class="eyebrow">Free • Open source • No hardware needed</p><h1>See More of You.<br>Explore the Brain.</h1><p class="lede">An interactive learning space for brain and body signals. Explore synthetic waveforms, understand the basics, and download sample data—all in your browser.</p></section>
+<section class="panel" id="explorer" aria-labelledby="explorer-title"><p class="eyebrow">Interactive lab</p><h2 id="explorer-title">Biosignal Explorer</h2>
+<div class="controls">
+<label class="control">Signal type<select id="mode"><option value="eeg">EEG — Brain rhythms</option><option value="viugaze">ViuGaze™ — Eye movements</option><option value="emg">EMG — Muscle activity</option></select></label>
+<label class="control">Signal intensity <input id="intensity" type="range" min="1" max="10" value="5"><output id="intensityValue">5</output></label>
+<button id="download" type="button">Download synthetic CSV</button>
+</div>
+<canvas id="plot" role="img" aria-label="Synthetic EEG waveform chart"></canvas>
+<p id="explanation" aria-live="polite"></p>
+<small>All signals are synthetic mathematical examples, not recordings from people. Not for diagnosis or clinical decisions.</small>
+</section>
+<section id="learn" aria-labelledby="learn-title"><h2 id="learn-title">What are we exploring?</h2><div class="grid">
+<article class="tile"><h3>🧠 EEG</h3><p>Electroencephalography measures electrical activity recorded from the scalp. Explore an illustrative rhythmic waveform.</p></article>
+<article class="tile"><h3>👁️ ViuGaze™</h3><p>Our name for exploring eye-movement and blink signals based on electrooculography (EOG).</p></article>
+<article class="tile"><h3>💪 EMG</h3><p>Electromyography measures electrical activity associated with muscle activation.</p></article>
+</div></section>
+<section class="panel"><h2>Built for curious minds</h2><p>OpenBrain is an educational research demo from NeuroViu. Students, educators, developers, and researchers are welcome to study the code and contribute improvements.</p><p><a href="https://github.com/neuroviu/openbrain">Explore the project on GitHub →</a></p></section>
+</main><footer>© NeuroViu • See More of You • Educational simulations only • <a href="https://neuroviu.org">neuroviu.org</a></footer>
+<script>
+"use strict";
+const mode=document.getElementById("mode"), intensity=document.getElementById("intensity"), out=document.getElementById("intensityValue"), canvas=document.getElementById("plot"), explanation=document.getElementById("explanation");
+const descriptions={eeg:"EEG: an illustrative combination of rhythmic oscillations. Real EEG contains many interacting sources and artifacts.",viugaze:"ViuGaze™: simulated blink-shaped pulses and slow eye-movement changes, based on EOG concepts.",emg:"EMG: an illustrative burst of faster oscillations representing changes in muscle activation."};
+function sample(t,kind,amp){
+ if(kind==="eeg")return amp*(0.55*Math.sin(2*Math.PI*10*t)+0.22*Math.sin(2*Math.PI*6*t)+0.08*Math.sin(2*Math.PI*18*t));
+ if(kind==="viugaze"){const blink=[0.9,2.5,4.1].reduce((s,c)=>s+Math.exp(-Math.pow((t-c)/.10,2)),0);return amp*(.12*Math.sin(2*Math.PI*.5*t)+.75*blink)}
+ return amp*(.15+.8*Math.pow(Math.max(0,Math.sin(2*Math.PI*.6*t)),2))*(.55*Math.sin(2*Math.PI*53*t)+.22*Math.sin(2*Math.PI*77*t));
+}
+function draw(){
+ out.value=intensity.value;const kind=mode.value,amp=Number(intensity.value)/10;explanation.textContent=descriptions[kind];canvas.setAttribute("aria-label","Synthetic "+(kind==="viugaze"?"ViuGaze":kind.toUpperCase())+" waveform chart");
+ const dpr=window.devicePixelRatio||1,w=Math.max(280,canvas.clientWidth),h=270;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+ const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+ ctx.strokeStyle="#42305d";ctx.lineWidth=1;for(let i=1;i<5;i++){let y=h*i/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.strokeStyle="#c99cff";ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<w;i++){let t=5*i/(w-1),v=sample(t,kind,amp),y=h/2-v*h*.34;if(i===0)ctx.moveTo(i,y);else ctx.lineTo(i,y)}ctx.stroke();
+}
+document.getElementById("download").addEventListener("click",()=>{
+ const kind=mode.value,amp=Number(intensity.value)/10,rows=["time_s,synthetic_amplitude_arbitrary_units"];
+ for(let i=0;i<=1000;i++){let t=5*i/200;rows.push(t.toFixed(4)+","+sample(t,kind,amp).toFixed(6))}
+ const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="openbrain_"+kind+"_synthetic.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+mode.addEventListener("change",draw);intensity.addEventListener("input",draw);window.addEventListener("resize",draw);draw();
+</script></body></html>
