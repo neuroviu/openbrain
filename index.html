@@ -50,7 +50,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 </section>
 <section class="panel" id="lessons" aria-labelledby="lessons-title">
 <p class="eyebrow">NeuroLearn · Free interactive lessons</p><h2 id="lessons-title">Learn neuroscience in five minutes</h2>
-<p>Choose a short lesson, read the explanation, and test your understanding. Your progress stays in this browser session—no account, tracking, or personal information required.</p>
+<p>Follow the Foundations learning path: four short lessons, four quizzes, and a printable completion certificate. Progress lasts for this browser session only—no account or tracking.</p><p><strong id="learningProgress" aria-live="polite">0 of 4 lessons completed</strong></p>
 <div class="controls"><label class="control">Choose lesson<select id="lessonSelect"><option value="0">1 · What is EEG?</option><option value="1">2 · Understanding brain rhythms</option><option value="2">3 · Eye movements and ViuGaze™</option><option value="3">4 · What does EMG measure?</option></select></label></div>
 <div class="tile" style="margin-top:16px">
 <h3 id="lessonTitle"></h3><p id="lessonText"></p><p><strong>Check your understanding</strong></p><p id="lessonQuestion"></p>
@@ -58,7 +58,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <p id="lessonFeedback" aria-live="polite"></p>
 <button id="nextLesson" type="button">Next lesson →</button>
 </div>
-<small>Educational content only. These explanations simplify complex physiology and are not clinical guidance.</small>
+<div class="tile" style="margin-top:16px"><h3>🎓 Foundations learning path</h3><p>Complete all four lesson quizzes correctly to unlock an informal completion certificate.</p><label class="control">Name for certificate (optional)<input id="certificateName" type="text" maxlength="80" placeholder="Your name"></label><p><button id="certificateButton" type="button" disabled>Print completion certificate</button></p><p id="certificateStatus" aria-live="polite">Finish all four quizzes to unlock.</p></div><div class="tile" style="margin-top:16px"><h3>📚 Free classroom resources</h3><p><a href="https://github.com/neuroviu/openbrain/blob/main/resources/student-activity.md">Student activity sheet</a> · <a href="https://github.com/neuroviu/openbrain/blob/main/resources/educator-guide.md">Educator guide and answer key</a></p><p>These resources are free to read, download, and adapt with attribution.</p></div><small>Educational content only. These explanations simplify complex physiology and are not clinical guidance.</small>
 </section>
 <section id="learn" aria-labelledby="learn-title"><h2 id="learn-title">What are we exploring?</h2><div class="grid">
 <article class="tile"><h3>🧠 EEG</h3><p>Electroencephalography measures electrical activity recorded from the scalp. Explore an illustrative rhythmic waveform.</p></article>
@@ -119,6 +119,9 @@ document.getElementById("rhythmDownload").addEventListener("click",()=>{
 });
 drawRhythm();
 
+const completedLessons=new Set();
+const learningProgress=document.getElementById("learningProgress"),certificateButton=document.getElementById("certificateButton"),certificateStatus=document.getElementById("certificateStatus");
+function updateLearningProgress(){learningProgress.textContent=completedLessons.size+" of 4 lessons completed";certificateButton.disabled=completedLessons.size!==4;certificateStatus.textContent=completedLessons.size===4?"All quizzes completed! You can print your certificate.":"Finish all four quizzes to unlock."}
 const lessons=[
 {title:"What is EEG?",text:"Electroencephalography (EEG) records electrical potential differences at electrodes placed on or near the scalp. EEG reflects summed activity from many neural sources, mixed with noise and artifacts. A single trace does not reveal someone's thoughts.",question:"Which statement is accurate?",answers:["EEG directly reads thoughts","EEG measures voltage differences at electrodes","EEG diagnoses every brain condition"],correct:1,why:"EEG measures voltage differences. Interpretation requires appropriate equipment, context, and expertise."},
 {title:"Understanding brain rhythms",text:"EEG activity can be described in frequency bands such as delta, theta, alpha, beta, and gamma. Their boundaries are conventions, not sharp biological categories. A frequency band alone cannot determine attention, emotion, or diagnosis.",question:"What can a 10 Hz simulated waveform prove?",answers:["A person is relaxed","A person has a specific diagnosis","Only that the synthetic waveform oscillates 10 times per second"],correct:2,why:"A mathematical 10 Hz example is not a human EEG measurement or evidence of a mental state."},
@@ -128,9 +131,17 @@ const lessons=[
 const lessonSelect=document.getElementById("lessonSelect"),lessonTitle=document.getElementById("lessonTitle"),lessonText=document.getElementById("lessonText"),lessonQuestion=document.getElementById("lessonQuestion"),lessonAnswers=document.getElementById("lessonAnswers"),lessonFeedback=document.getElementById("lessonFeedback");
 function showLesson(){
  const lesson=lessons[Number(lessonSelect.value)];lessonTitle.textContent=lesson.title;lessonText.textContent=lesson.text;lessonQuestion.textContent=lesson.question;lessonFeedback.textContent="";lessonAnswers.replaceChildren();
- lesson.answers.forEach((answer,i)=>{const b=document.createElement("button");b.type="button";b.textContent=String.fromCharCode(65+i)+". "+answer;b.style.margin="4px 8px 4px 0";b.style.textAlign="left";b.addEventListener("click",()=>{lessonFeedback.textContent=(i===lesson.correct?"Correct! ":"Not quite. ")+lesson.why;lessonAnswers.querySelectorAll("button").forEach(button=>button.disabled=true)});lessonAnswers.appendChild(b)});
+ lesson.answers.forEach((answer,i)=>{const b=document.createElement("button");b.type="button";b.textContent=String.fromCharCode(65+i)+". "+answer;b.style.margin="4px 8px 4px 0";b.style.textAlign="left";b.addEventListener("click",()=>{if(i===lesson.correct){completedLessons.add(Number(lessonSelect.value));updateLearningProgress()}lessonFeedback.textContent=(i===lesson.correct?"Correct! ":"Not quite. ")+lesson.why;lessonAnswers.querySelectorAll("button").forEach(button=>button.disabled=true)});lessonAnswers.appendChild(b)});
 }
 lessonSelect.addEventListener("change",showLesson);
 document.getElementById("nextLesson").addEventListener("click",()=>{lessonSelect.value=String((Number(lessonSelect.value)+1)%lessons.length);showLesson()});
-showLesson();
+showLesson();updateLearningProgress();
+certificateButton.addEventListener("click",()=>{
+ if(completedLessons.size!==4)return;
+ const name=document.getElementById("certificateName").value.trim()||"NeuroLearn Participant";
+ const safe=name.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const doc=window.open("","_blank");if(!doc){certificateStatus.textContent="Please allow pop-ups to print your certificate.";return}
+ doc.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>NeuroLearn Certificate</title><style>body{font-family:system-ui;text-align:center;padding:12vh 8vw;color:#302048;border:12px solid #9b73cf;margin:20px}h1{font-size:3rem}h2{font-size:2rem}p{font-size:1.2rem}</style></head><body><h1>NeuroViu · NeuroLearn</h1><p>Certificate of Participation</p><h2>'+safe+'</h2><p>Completed four introductory neuroscience knowledge checks in OpenBrain Foundations.</p><p>'+new Date().toLocaleDateString()+'</p><p>Informal educational recognition only — not accredited training or proof of identity.</p></body></html>');
+ doc.document.close();doc.focus();doc.print();
+});
 </script></body></html>
