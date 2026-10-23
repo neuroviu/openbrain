@@ -61,9 +61,9 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <div class="tile" style="margin-top:16px"><h3>🎓 Foundations learning path</h3><p>Complete all four lesson quizzes correctly to unlock an informal completion certificate.</p><label class="control">Name for certificate (optional)<input id="certificateName" type="text" maxlength="80" placeholder="Your name"></label><p><button id="certificateButton" type="button" disabled>Print completion certificate</button></p><p id="certificateStatus" aria-live="polite">Finish all four quizzes to unlock.</p></div><div class="tile" style="margin-top:16px"><h3>📚 Free classroom resources</h3><p><a href="https://github.com/neuroviu/openbrain/blob/main/resources/student-activity.md">Student activity sheet</a> · <a href="https://github.com/neuroviu/openbrain/blob/main/resources/educator-guide.md">Educator guide and answer key</a></p><p>These resources are free to read, download, and adapt with attribution.</p></div><small>Educational content only. These explanations simplify complex physiology and are not clinical guidance.</small>
 </section>
 <section class="panel" id="feedback" aria-labelledby="feedback-title">
-<p class="eyebrow">Help shape our public beta</p><h2 id="feedback-title">Beta feedback survey (preview)</h2>
-<p>We're preparing a short, optional survey. No name, email address, or account is requested. Please do not include health details or other identifying information.</p>
-<form id="feedbackForm" action="#feedback">
+<p class="eyebrow">Help shape our public beta</p><h2 id="feedback-title">Share feedback on OpenBrain</h2>
+<p>This optional survey helps improve OpenBrain. We don't request names, email addresses, or accounts. Please don't include identifying or health information.</p>
+<form id="feedbackForm" action="https://formspree.io/f/mjyykbgv" method="POST">
 <div class="controls">
 <label class="control">Your role (optional)<select name="role"><option value="">Prefer not to say</option><option value="student">Student</option><option value="educator">Educator</option><option value="researcher">Researcher</option><option value="other">Other</option></select></label>
 <label class="control">Ease of use<select name="ease" required><option value="">Choose a rating</option><option value="1">1 — Difficult</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 — Easy</option></select></label>
@@ -71,10 +71,10 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 </div>
 <p><label class="control">Did you encounter an accessibility difficulty?<select name="accessibility"><option value="">Prefer not to say</option><option value="no">No</option><option value="yes">Yes</option><option value="unsure">Not sure</option></select></label></p>
 <p><label class="control">What should we improve? (optional)<textarea name="suggestion" maxlength="500" rows="3" style="width:100%;resize:vertical" placeholder="Please avoid names, contact details, or health information."></textarea></label></p>
-<button id="feedbackSubmit" type="submit" disabled>Submit feedback (coming soon)</button>
-<p id="feedbackStatus" aria-live="polite">Preview only: your responses are not collected or submitted yet. We will enable submission after configuring a privacy-reviewed form endpoint.</p>
+<button id="feedbackSubmit" type="submit">Submit feedback</button>
+<p id="feedbackStatus" aria-live="polite">Your feedback will be sent to Formspree for NeuroViu to review. Please submit only non-sensitive feedback.</p>
 </form>
-<small>Anonymous means we do not ask for identifying information. The eventual submission provider may still process technical metadata such as IP addresses; we'll publish its privacy details before activating submissions.</small>
+<small>No name or email is required, but this is not guaranteed anonymous: Formspree may process technical metadata (such as IP addresses) and any information you type. <a href="https://formspree.io/legal/privacy-policy/" target="_blank" rel="noopener noreferrer">Formspree privacy policy</a>. By submitting, you agree to send your feedback to Formspree for NeuroViu's review.</small>
 </section>
 <section id="learn" aria-labelledby="learn-title"><h2 id="learn-title">What are we exploring?</h2><div class="grid">
 <article class="tile"><h3>🧠 EEG</h3><p>Electroencephalography measures electrical activity recorded from the scalp. Explore an illustrative rhythmic waveform.</p></article>
@@ -160,5 +160,5 @@ certificateButton.addEventListener("click",()=>{
  doc.document.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>NeuroLearn Certificate</title><style>body{font-family:system-ui;text-align:center;padding:12vh 8vw;color:#302048;border:12px solid #9b73cf;margin:20px}h1{font-size:3rem}h2{font-size:2rem}p{font-size:1.2rem}</style></head><body><h1>NeuroViu · NeuroLearn</h1><p>Certificate of Participation</p><h2>'+safe+'</h2><p>Completed four introductory neuroscience knowledge checks in OpenBrain Foundations.</p><p>'+new Date().toLocaleDateString()+'</p><p>Informal educational recognition only — not accredited training or proof of identity.</p></body></html>');
  doc.document.close();doc.focus();doc.print();
 });
-document.getElementById("feedbackForm").addEventListener("submit",event=>{event.preventDefault()});
+
 </script></body></html>
