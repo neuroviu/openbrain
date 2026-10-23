@@ -21,7 +21,7 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 </style>
 </head>
 <body>
-<header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#rhythms">Brain rhythms</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
+<header><div class="brand">Neuro<span>Viu</span> / OpenBrain</div><nav aria-label="Main"><a href="#explorer">Explore</a><a href="#rhythms">Brain rhythms</a><a href="#lessons">Lessons</a><a href="#learn">Learn</a><a href="https://github.com/neuroviu/openbrain">Source code</a></nav></header>
 <main>
 <section class="hero"><p class="eyebrow">Free • Open source • No hardware needed</p><h1>See More of You.<br>Explore the Brain.</h1><p class="lede">An interactive learning space for brain and body signals. Explore synthetic waveforms, understand the basics, and download sample data—all in your browser.</p></section>
 <section class="panel" id="explorer" aria-labelledby="explorer-title"><p class="eyebrow">Interactive lab</p><h2 id="explorer-title">Biosignal Explorer</h2>
@@ -47,6 +47,18 @@ footer{border-top:1px solid #4d376a;color:var(--muted);font-size:.9rem}
 <canvas id="rhythmPlot" role="img" aria-label="Simulated alpha rhythm at 10 hertz"></canvas>
 <p id="rhythmExplanation" aria-live="polite"></p>
 <small>Waveform: pure synthetic sine wave; 2-second display window; amplitude in arbitrary units. No EEG hardware or personal data.</small>
+</section>
+<section class="panel" id="lessons" aria-labelledby="lessons-title">
+<p class="eyebrow">NeuroLearn · Free interactive lessons</p><h2 id="lessons-title">Learn neuroscience in five minutes</h2>
+<p>Choose a short lesson, read the explanation, and test your understanding. Your progress stays in this browser session—no account, tracking, or personal information required.</p>
+<div class="controls"><label class="control">Choose lesson<select id="lessonSelect"><option value="0">1 · What is EEG?</option><option value="1">2 · Understanding brain rhythms</option><option value="2">3 · Eye movements and ViuGaze™</option><option value="3">4 · What does EMG measure?</option></select></label></div>
+<div class="tile" style="margin-top:16px">
+<h3 id="lessonTitle"></h3><p id="lessonText"></p><p><strong>Check your understanding</strong></p><p id="lessonQuestion"></p>
+<div id="lessonAnswers" role="group" aria-label="Quiz answer choices"></div>
+<p id="lessonFeedback" aria-live="polite"></p>
+<button id="nextLesson" type="button">Next lesson →</button>
+</div>
+<small>Educational content only. These explanations simplify complex physiology and are not clinical guidance.</small>
 </section>
 <section id="learn" aria-labelledby="learn-title"><h2 id="learn-title">What are we exploring?</h2><div class="grid">
 <article class="tile"><h3>🧠 EEG</h3><p>Electroencephalography measures electrical activity recorded from the scalp. Explore an illustrative rhythmic waveform.</p></article>
@@ -106,4 +118,19 @@ document.getElementById("rhythmDownload").addEventListener("click",()=>{
  const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="openbrain_"+bandSelect.value+"_"+f+"hz_synthetic.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 drawRhythm();
+
+const lessons=[
+{title:"What is EEG?",text:"Electroencephalography (EEG) records electrical potential differences at electrodes placed on or near the scalp. EEG reflects summed activity from many neural sources, mixed with noise and artifacts. A single trace does not reveal someone's thoughts.",question:"Which statement is accurate?",answers:["EEG directly reads thoughts","EEG measures voltage differences at electrodes","EEG diagnoses every brain condition"],correct:1,why:"EEG measures voltage differences. Interpretation requires appropriate equipment, context, and expertise."},
+{title:"Understanding brain rhythms",text:"EEG activity can be described in frequency bands such as delta, theta, alpha, beta, and gamma. Their boundaries are conventions, not sharp biological categories. A frequency band alone cannot determine attention, emotion, or diagnosis.",question:"What can a 10 Hz simulated waveform prove?",answers:["A person is relaxed","A person has a specific diagnosis","Only that the synthetic waveform oscillates 10 times per second"],correct:2,why:"A mathematical 10 Hz example is not a human EEG measurement or evidence of a mental state."},
+{title:"Eye movements and ViuGaze™",text:"Electrooculography (EOG) can measure voltage changes associated with eye movement and blinks. ViuGaze™ is NeuroViu's educational label for exploring these concepts. Simulated blinks are not recordings of real eyes.",question:"Which signal is commonly associated with blinks and eye movements?",answers:["EOG","ECG","Temperature"],correct:0,why:"EOG is commonly used to observe electrical changes associated with eye movements and blinks."},
+{title:"What does EMG measure?",text:"Electromyography (EMG) measures electrical activity associated with muscle activation. Recordings depend on electrode placement, movement, and other factors. A synthetic burst is useful for learning but does not measure muscle strength.",question:"What does our EMG demo display?",answers:["A live recording from your muscles","A simulated electrical waveform","A medical diagnosis"],correct:1,why:"OpenBrain currently generates illustrative synthetic waveforms, not live physiological recordings."}
+];
+const lessonSelect=document.getElementById("lessonSelect"),lessonTitle=document.getElementById("lessonTitle"),lessonText=document.getElementById("lessonText"),lessonQuestion=document.getElementById("lessonQuestion"),lessonAnswers=document.getElementById("lessonAnswers"),lessonFeedback=document.getElementById("lessonFeedback");
+function showLesson(){
+ const lesson=lessons[Number(lessonSelect.value)];lessonTitle.textContent=lesson.title;lessonText.textContent=lesson.text;lessonQuestion.textContent=lesson.question;lessonFeedback.textContent="";lessonAnswers.replaceChildren();
+ lesson.answers.forEach((answer,i)=>{const b=document.createElement("button");b.type="button";b.textContent=String.fromCharCode(65+i)+". "+answer;b.style.margin="4px 8px 4px 0";b.style.textAlign="left";b.addEventListener("click",()=>{lessonFeedback.textContent=(i===lesson.correct?"Correct! ":"Not quite. ")+lesson.why;lessonAnswers.querySelectorAll("button").forEach(button=>button.disabled=true)});lessonAnswers.appendChild(b)});
+}
+lessonSelect.addEventListener("change",showLesson);
+document.getElementById("nextLesson").addEventListener("click",()=>{lessonSelect.value=String((Number(lessonSelect.value)+1)%lessons.length);showLesson()});
+showLesson();
 </script></body></html>
