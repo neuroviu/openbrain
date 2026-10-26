@@ -1,0 +1,88 @@
+name: Accessibility evidence audit
+
+on:
+  push:
+    paths:
+      - 'resources/accessibility/**'
+      - '.github/workflows/accessibility-audit.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install audit dependencies
+        run: python -m pip install --disable-pip-version-check pymupdf python-docx requests beautifulsoup4
+      - name: Generate evidence report
+        shell: bash
+        run: |
+          mkdir -p accessibility-audit
+          python - <<'PY'
+          import os, json, pathlib, datetime, requests
+          import fitz
+          from docx import Document
+          root=pathlib.Path('resources/accessibility')
+          findings=[]
+          inventory=[]
+          def record(resource,check,status,details):
+              findings.append(dict(resource=resource,check=check,status=status,details=details))
+          for p in sorted(root.rglob('*')):
+              if not p.is_file(): continue
+              inventory.append(str(p))
+              if p.suffix.lower()=='.pdf':
+                  try:
+                      doc=fitz.open(p)
+                      md=doc.metadata or {}
+                      record(str(p),'PDF readable','pass' if len(doc)>0 else 'fail',f'{len(doc)} pages')
+                      record(str(p),'PDF title metadata','pass' if md.get('title') else 'review',md.get('title') or 'Missing PDF title')
+                      record(str(p),'PDF text extraction','pass' if any(page.get_text().strip() for page in doc) else 'review','Check scanned pages, reading order, and tags manually')
+                      record(str(p),'PDF structure tags / PDF-UA','manual','Requires independent PDF/UA validation and assistive technology testing')
+                  except Exception as e: record(str(p),'PDF parsing','fail',str(e))
+              elif p.suffix.lower()=='.docx':
+                  try:
+                      d=Document(p)
+                      heading_count=sum(1 for q in d.paragraphs if q.style and q.style.name.startswith('Heading'))
+                      missing_alt=0
+                      for inline in d.inline_shapes:
+                          x=inline._inline.docPr
+                          if not x.get('descr') and not x.get('title'): missing_alt+=1
+                      record(str(p),'Word headings','pass' if heading_count else 'review',f'{heading_count} styled headings')
+                      record(str(p),'Word image descriptions','review' if missing_alt else 'pass',f'{missing_alt} inline images without title/description; decorative exceptions need review')
+                      record(str(p),'Word table headers','manual',f'{len(d.tables)} tables: verify header rows and navigation')
+                      record(str(p),'Word accessibility','manual','Run Microsoft Word Accessibility Checker and screen reader review')
+                  except Exception as e: record(str(p),'Word parsing','fail',str(e))
+          url='https://neuroviu.org/resources/disability-inclusive-clinical-research-accommodation-planning-form'
+          try:
+              r=requests.get(url,timeout=25,headers={'User-Agent':'NeuroViu-accessibility-audit/1.0'})
+              record(url,'Public resource HTTP status','pass' if r.ok else 'review',f'HTTP {r.status_code}; final URL {r.url}')
+              if r.ok and 'html' in r.headers.get('Content-Type',''):
+                  from bs4 import BeautifulSoup
+                  soup=BeautifulSoup(r.text,'html.parser')
+                  record(url,'Page language','pass' if soup.html and soup.html.get('lang') else 'review',str(soup.html.get('lang') if soup.html else 'Missing HTML element'))
+                  record(url,'Page title','pass' if soup.title and soup.title.get_text(strip=True) else 'review',soup.title.get_text(strip=True) if soup.title else 'Missing title')
+                  record(url,'Form accessibility','manual','Keyboard, labels, contrast, focus, screen reader, and linked downloads require testing')
+          except Exception as e: record(url,'Public resource HTTP status','review',str(e))
+          report=dict(generated_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),scope='Automated preliminary checks; NOT Section 508 certification',inventory=inventory,findings=findings)
+          pathlib.Path('accessibility-audit/report.json').write_text(json.dumps(report,indent=2))
+          lines=['# NeuroViu accessibility evidence audit','','Automated checks only; this is **not** a Section 508 conformance determination.','']
+          for f in findings: lines.append(f"- **{f['status'].upper()}** {f['resource']} — {f['check']}: {f['details']}")
+          lines+=['','## Manual verification required','','- PDF/UA validation, tags, reading order, tables, bookmarks, contrast and screen-reader testing','- Word Accessibility Checker, table header markup, reading order and screen-reader testing','- Accommodation form: keyboard-only operation, focus order, labels, error messages, contrast, screen reader and downloadable file inspection','- Document findings and remediate before asserting 508-conformant']
+          pathlib.Path('accessibility-audit/report.md').write_text('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neuroviu-accessibility-audit
+          path: accessibility-audit/
+          if-no-files-found: warn
