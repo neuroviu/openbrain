@@ -17,52 +17,60 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Identify exactly two corrected PDFs
+      - name: Extract uploaded remediation candidates
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p pdfua-reports
-          base="NeuroViu_PDFUA_Cloud_Setup/pdfua-inputs"
-          test -s "$base/NeuroViu_Accommodation_Planning_Form_Structure_Updated.pdf"
-          test -s "$base/NeuroViu_Toolkit_v1_Content_Corrected.pdf"
-          printf '%s\n' \
-            "$base/NeuroViu_Accommodation_Planning_Form_Structure_Updated.pdf" \
-            "$base/NeuroViu_Toolkit_v1_Content_Corrected.pdf" \
-            > pdfua-reports/input-files.txt
-          sha256sum "$base"/*.pdf > pdfua-reports/input-sha256.txt
+          mkdir -p pdfua-reports pdfua-current
+          archive="NeuroViu_PDFUA_Cloud_Setup/pdfua-inputs/NeuroViu_PDFUA_Remediation_Candidates.zip"
+          test -s "$archive"
+          unzip -l "$archive"
+          unzip -oq "$archive" -d pdfua-current
+          find pdfua-current -type f -iname '*.pdf' -print | sort > pdfua-reports/input-files.txt
           cat pdfua-reports/input-files.txt
+          test "$(wc -l < pdfua-reports/input-files.txt)" -eq 2
+          if ! grep -iq 'accommodation' pdfua-reports/input-files.txt || ! grep -iq 'toolkit' pdfua-reports/input-files.txt; then
+            echo "Expected accommodation form and toolkit PDF in uploaded archive."
+            exit 1
+          fi
+          while IFS= read -r file; do sha256sum "$file"; done < pdfua-reports/input-files.txt > pdfua-reports/input-sha256.txt
 
-      - name: Pull official veraPDF CLI image
+      - name: Pull veraPDF CLI image
         run: docker pull verapdf/cli:v1.30.2
 
-      - name: Validate against PDF-UA-1
+      - name: Validate extracted PDFs against PDF-UA-1
         shell: bash
         run: |
           set -euo pipefail
           failed=0
+          index=0
           while IFS= read -r file; do
+            index=$((index + 1))
             name="$(basename "$file" .pdf)"
-            echo "Validating $file"
+            echo "Validating extracted file: $file"
             if docker run --rm -v "$PWD:/data:ro" verapdf/cli:v1.30.2 \
                 --flavour ua1 --format xml "/data/$file" \
-                > "pdfua-reports/${name}.xml" \
-                2> "pdfua-reports/${name}.log"; then
-              echo "veraPDF completed for $name"
+                > "pdfua-reports/${index}-${name}.xml" \
+                2> "pdfua-reports/${index}-${name}.log"; then
+              echo "veraPDF CLI succeeded for $name"
             else
-              echo "veraPDF command failed for $name"
+              echo "veraPDF CLI returned failure for $name"
               failed=1
             fi
-            if ! grep -Eq '<validationReport[^>]*isCompliant="true"|<validationReport[^>]*isCompliant="false"' "pdfua-reports/${name}.xml"; then
-              echo "Missing PDF/UA validation result for $name"
+            report="pdfua-reports/${index}-${name}.xml"
+            if ! grep -Eq '<validationReport[^>]*isCompliant="(true|false)"' "$report"; then
+              echo "Missing compliance result: $report"
               failed=1
-            elif grep -Eq '<validationReport[^>]*isCompliant="false"' "pdfua-reports/${name}.xml"; then
-              echo "Nonconformant PDF: $name (see report)"
+            elif grep -Eq '<validationReport[^>]*isCompliant="false"' "$report"; then
+              echo "PDF-UA-1 nonconformance: $name (inspect XML report)"
               failed=1
+            else
+              echo "PDF-UA-1 validation PASS: $name"
             fi
           done < pdfua-reports/input-files.txt
           exit "$failed"
 
-      - name: Upload evidence reports
+      - name: Upload validation reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
