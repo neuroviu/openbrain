@@ -1,0 +1,64 @@
+
+name: NeuroViu PDF-UA Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "pdfua-inputs/**"
+      - "NeuroViu_PDFUA_Cloud_Setup/**"
+      - ".github/workflows/pdfua-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pdfs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Find PDF files
+        run: |
+          mkdir -p pdfua-reports
+          find . -type f -iname "*.pdf" \
+            -not -path "./.git/*" \
+            | sort > pdfua-reports/input-files.txt
+
+          cat pdfua-reports/input-files.txt
+
+          if [ ! -s pdfua-reports/input-files.txt ]; then
+            echo "No PDF files found."
+            exit 1
+          fi
+
+      - name: Download veraPDF container
+        run: docker pull verapdf/verapdf:latest
+
+      - name: Validate PDFs against PDF-UA-1
+        shell: bash
+        run: |
+          mkdir -p pdfua-reports
+
+          while IFS= read -r file; do
+            name=$(basename "$file" .pdf)
+            echo "Validating: $file"
+
+            docker run --rm \
+              -v "$PWD:/data" \
+              verapdf/verapdf:latest \
+              --flavour ua1 \
+              --format xml \
+              "/data/${file#./}" \
+              > "pdfua-reports/${name}.xml" \
+              2> "pdfua-reports/${name}.log" || true
+
+          done < pdfua-reports/input-files.txt
+
+      - name: Upload validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neuroviu-pdfua-reports
+          path: pdfua-reports/
