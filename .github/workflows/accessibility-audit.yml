@@ -45,7 +45,12 @@ jobs:
                       record(str(p),'PDF readable','pass' if len(doc)>0 else 'fail',f'{len(doc)} pages')
                       record(str(p),'PDF title metadata','pass' if md.get('title') else 'review',md.get('title') or 'Missing PDF title')
                       record(str(p),'PDF text extraction','pass' if any(page.get_text().strip() for page in doc) else 'review','Check scanned pages, reading order, and tags manually')
-                      record(str(p),'PDF structure tags / PDF-UA','manual','Requires independent PDF/UA validation and assistive technology testing')
+                      catalog=doc.pdf_catalog()
+                      struct=doc.xref_get_key(catalog,'StructTreeRoot')[0]=='xref'
+                      language=doc.xref_get_key(catalog,'Lang')[1]
+                      record(str(p),'PDF tagged structure present','pass' if struct else 'review','Structure tree detected; this does NOT validate PDF/UA or reading order' if struct else 'Missing structure tree')
+                      record(str(p),'PDF language metadata','pass' if language not in ('null','') else 'review',language)
+                      record(str(p),'PDF structure tags / PDF-UA','manual','Validate tag semantics, tables, logical reading order, and PDF/UA with independent tools')
                   except Exception as e: record(str(p),'PDF parsing','fail',str(e))
               elif p.suffix.lower()=='.docx':
                   try:
@@ -57,7 +62,9 @@ jobs:
                           if not x.get('descr') and not x.get('title'): missing_alt+=1
                       record(str(p),'Word headings','pass' if heading_count else 'review',f'{heading_count} styled headings')
                       record(str(p),'Word image descriptions','review' if missing_alt else 'pass',f'{missing_alt} inline images without title/description; decorative exceptions need review')
-                      record(str(p),'Word table headers','manual',f'{len(d.tables)} tables: verify header rows and navigation')
+                      header_count=sum(1 for table in d.tables if table.rows and 'w:tblHeader' in table.rows[0]._tr.xml)
+                      record(str(p),'Word first-row header markup','pass' if header_count==len(d.tables) else 'review',f'{header_count}/{len(d.tables)} tables have first-row header markup; manual navigation still required')
+                      record(str(p),'Word table navigation','manual',f'{len(d.tables)} tables: verify screen-reader reading order and header association')
                       record(str(p),'Word accessibility','manual','Run Microsoft Word Accessibility Checker and screen reader review')
                   except Exception as e: record(str(p),'Word parsing','fail',str(e))
           url='https://neuroviu.org/resources/disability-inclusive-clinical-research-accommodation-planning-form'
