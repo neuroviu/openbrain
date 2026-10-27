@@ -1,12 +1,10 @@
-
 name: NeuroViu PDF-UA Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - "pdfua-inputs/**"
-      - "NeuroViu_PDFUA_Cloud_Setup/**"
+      - "NeuroViu_PDFUA_Cloud_Setup/pdfua-inputs/**"
       - ".github/workflows/pdfua-validation.yml"
 
 permissions:
@@ -19,46 +17,55 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Find PDF files
-        run: |
-          mkdir -p pdfua-reports
-          find . -type f -iname "*.pdf" \
-            -not -path "./.git/*" \
-            | sort > pdfua-reports/input-files.txt
-
-          cat pdfua-reports/input-files.txt
-
-          if [ ! -s pdfua-reports/input-files.txt ]; then
-            echo "No PDF files found."
-            exit 1
-          fi
-
-      - name: Download veraPDF container
-        run: docker pull verapdf/verapdf:latest
-
-      - name: Validate PDFs against PDF-UA-1
+      - name: Identify exactly two corrected PDFs
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p pdfua-reports
+          base="NeuroViu_PDFUA_Cloud_Setup/pdfua-inputs"
+          test -s "$base/NeuroViu_Accommodation_Planning_Form_Structure_Updated.pdf"
+          test -s "$base/NeuroViu_Toolkit_v1_Content_Corrected.pdf"
+          printf '%s\n' \
+            "$base/NeuroViu_Accommodation_Planning_Form_Structure_Updated.pdf" \
+            "$base/NeuroViu_Toolkit_v1_Content_Corrected.pdf" \
+            > pdfua-reports/input-files.txt
+          sha256sum "$base"/*.pdf > pdfua-reports/input-sha256.txt
+          cat pdfua-reports/input-files.txt
 
+      - name: Pull official veraPDF CLI image
+        run: docker pull ghcr.io/verapdf/cli:v1.31.202
+
+      - name: Validate against PDF-UA-1
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
           while IFS= read -r file; do
-            name=$(basename "$file" .pdf)
-            echo "Validating: $file"
-
-            docker run --rm \
-              -v "$PWD:/data" \
-              verapdf/verapdf:latest \
-              --flavour ua1 \
-              --format xml \
-              "/data/${file#./}" \
-              > "pdfua-reports/${name}.xml" \
-              2> "pdfua-reports/${name}.log" || true
-
+            name="$(basename "$file" .pdf)"
+            echo "Validating $file"
+            if docker run --rm -v "$PWD:/data:ro" ghcr.io/verapdf/cli:v1.31.202 \
+                --flavour ua1 --format xml "/data/$file" \
+                > "pdfua-reports/${name}.xml" \
+                2> "pdfua-reports/${name}.log"; then
+              echo "veraPDF completed for $name"
+            else
+              echo "veraPDF command failed for $name"
+              failed=1
+            fi
+            if ! grep -Eq '<validationReport[^>]*isCompliant="true"|<validationReport[^>]*isCompliant="false"' "pdfua-reports/${name}.xml"; then
+              echo "Missing PDF/UA validation result for $name"
+              failed=1
+            elif grep -Eq '<validationReport[^>]*isCompliant="false"' "pdfua-reports/${name}.xml"; then
+              echo "Nonconformant PDF: $name (see report)"
+              failed=1
+            fi
           done < pdfua-reports/input-files.txt
+          exit "$failed"
 
-      - name: Upload validation reports
+      - name: Upload evidence reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: neuroviu-pdfua-reports
           path: pdfua-reports/
+          if-no-files-found: error
